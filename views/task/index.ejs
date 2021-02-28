@@ -4,12 +4,220 @@
       <div class="main-content">
         <section class="section">
           <div class="section-header">
-            <h1>Blank Page</h1>
+            <h1><%= pageTitle %></h1>
           </div>
 
           <div class="section-body">
+            <div class="card">
+              <div class="card-header">
+                <h4>Task List</h4>
+                <div class="card-header-action">
+                  <button class="btn btn-primary" data-toggle="modal" data-target="#addTaskModal">Add Task</button>
+                </div>
+              </div>
+              <div class="card-body">
+                <% if (errorMessage) { %>
+                  <div class="alert alert-danger alert-dismissible show fade">
+                    <div class="alert-body">
+                      <button class="close" data-dismiss="alert">
+                        <span>×</span>
+                      </button>
+                      <%= errorMessage %>
+                    </div>
+                  </div>
+              <% } %>
+                <table id="myTable" class="table table-striped">
+                  <thead>
+                      <tr>
+                          <th>No</th>
+                          <th>Name</th>
+                          <th>Action</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                    <% task.forEach((item, index) => { %>
+                     <tr>
+                       <td><%= index+1 %></td>
+                       <td><%= item.name %></td>
+                       <td>
+                         <div class="btn-group" role="group" aria-label="Basic example">
+                          <% if (item.assignTasks.some(task => task.userId === user.id)) { %>
+                            <a href="/download-task/<%= item.id %>" class="btn btn-primary btn-sm"><i class="fas fa-download"></i></a>
+                            <button type="button" class="btn btn-warning btn-sm"
+                            data-toggle="modal" data-target="#modal-revoke"
+                            data-item-name="<%= item.name %>"
+                            data-item-id="<%= item.assignTasks.find(task => task.userId === user.id).id %>">
+                              Revoke</button>
+                          <% } else { %>
+                            <button type="button" class="btn btn-success btn-sm"
+                            data-toggle="modal" data-target="#modal-booking"
+                            data-item-name="<%= item.name %>" data-item-id="<%= item.id %>">
+                            Booking</button>
+                            <% } %>
+                            <button type="button" class="btn btn-danger btn-sm"
+                              data-toggle="modal" data-target="#modal-delete"
+                              data-item-name="<%= item.name %>" data-item-id="<%= item.id %>">
+                              <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                      </td>
+                     </tr>
+                    <% }) %>
+                  </tbody>
+              </table>
+              </div>
+            </div>
           </div>
         </section>
       </div>
+      
+      <div class="modal fade" tabindex="-1" role="dialog" id="addTaskModal">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Add Task</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <form method="POST" action="/add-task" enctype="multipart/form-data">
+              <div class="form-group">
+                <label>Task Name</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" placeholder="Task Name" name="name">
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Task File</label>
+                <div class="custom-file">
+                  <input type="file" name="zip" class="form-control-file">
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer bg-whitesmoke br">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <button type="button" class="btn btn-primary"
+              onclick="this.form.submit(); this.disabled=true; this.innerHTML='Sending...';">
+              Save changes</button>
+            </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" tabindex="-1" role="dialog" id="modal-delete">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete Task</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="modal-text">Are you sure want to delete "<span id="item-nama"></span>" ?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                    <form id="form-delete" method="POST" enctype="application/x-www-form-urlencoded">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <input type="hidden" name="_method" value="DELETE"/>
+                      <input id="item-id" type="hidden" name="id" value="">
+                      <button type="submit" onclick="this.form.submit(); this.disabled=true; this.innerHTML='Sending...';" class="btn btn-danger"> Yes </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="modal fade" tabindex="-1" role="dialog" id="modal-booking">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Booking Task</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="modal-text">Are you sure want to book "<span id="item-nama"></span>" ?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                    <form id="form-book" method="POST" action="/book-task">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <input id="item-id" type="hidden" name="taskId">
+                      <button type="submit" onclick="this.form.submit(); this.disabled=true; this.innerHTML='Sending...';" class="btn btn-danger"> Yes </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+      </div>
+
+      <div class="modal fade" tabindex="-1" role="dialog" id="modal-revoke">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Revoke Task</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="modal-text">Are you sure want to revoke task "<span id="item-nama"></span>" ?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+                    <form id="form-book" method="POST" enctype="application/x-www-form-urlencoded">
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <input type="hidden" name="_method" value="DELETE"/>
+                      <input id="item-id" type="hidden" name="id" value="">
+                      <button type="submit" onclick="this.form.submit(); this.disabled=true; this.innerHTML='Sending...';" class="btn btn-danger"> Yes </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+      </div>
+
+
+      <script>
+        $('#modal-delete').on('show.bs.modal', function(e) {
+
+            //get attribute of the clicked element
+            var itemId = $(e.relatedTarget).attr('data-item-id');
+            var itemName = $(e.relatedTarget).attr('data-item-name');
+            var url = '/delete-task/:id';
+            url = url.replace(':id', itemId);;
+
+            var modal = $(this);
+            modal.find('#item-nama').html(itemName);
+        });
+        $('#modal-booking').on('show.bs.modal', function(e) {
+
+            //get attribute of the clicked element
+            var itemId = $(e.relatedTarget).attr('data-item-id');
+            var itemName = $(e.relatedTarget).attr('data-item-name');
+
+            var modal = $(this);
+            modal.find('#item-nama').html(itemName);
+            modal.find('#item-id').val(itemId);
+        });
+        $('#modal-revoke').on('show.bs.modal', function(e) {
+
+            //get attribute of the clicked element
+            var itemId = $(e.relatedTarget).attr('data-item-id');
+            var itemName = $(e.relatedTarget).attr('data-item-name');
+            var url = '/revoke-task/:id';
+            url = url.replace(':id', itemId);;
+
+            var modal = $(this);
+            modal.find('#form-book').attr('action', url);
+            modal.find('#item-nama').html(itemName);
+        });
+      </script>
+
+
     <%- include('../includes/footer.ejs')  %> 
     <%- include('../includes/end.ejs') %>

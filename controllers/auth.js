@@ -1,4 +1,5 @@
 const bcrypt = require("bcryptjs");
+const { validationResult } = require("express-validator");
 
 const User = require("../models/user");
 
@@ -10,7 +11,6 @@ exports.getLogin = (req, res, next) => {
     message = null;
   }
   res.render("auth/login", {
-    path: "/login",
     pageTitle: "Login",
     errorMessage: message,
   });
@@ -24,15 +24,30 @@ exports.getSignup = (req, res, next) => {
     message = null;
   }
   res.render("auth/signup", {
-    path: "/signup",
     pageTitle: "Signup",
     errorMessage: message,
+    oldInput: {
+      username: req.body.username,
+      password: req.body.password,
+      confirmPassword: req.body.confirmPassword,
+    },
   });
 };
 
 exports.postLogin = (req, res, next) => {
   const username = req.body.username;
   const password = req.body.password;
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).render("auth/login", {
+      pageTitle: "Login",
+      errorMessage: errors.array(),
+      oldInput: {
+        username: username,
+        password: password,
+      },
+    });
+  }
   User.findOne({
     where: { username: username },
   })
@@ -66,32 +81,26 @@ exports.postLogin = (req, res, next) => {
 exports.postSignup = (req, res, next) => {
   const username = req.body.username;
   const password = req.body.password;
-  const confirmPassword = req.body.confirmPassword;
-  if (password != confirmPassword) {
-    req.flash("error", "password did not match.");
-    return res.redirect("/signup");
-  }
-  User.findOne({ where: { username: username } })
-    .then((userDoc) => {
-      if (userDoc) {
-        req.flash(
-          "error",
-          "username already exist, please pick a different one."
-        );
-        return res.redirect("/signup");
-      }
-      return bcrypt.hash(password, 12).then((hashedPassword) => {
-        User.create({
-          username: username,
-          password: hashedPassword,
-        }).then(() => {
-          res.redirect("/login");
-        });
-      });
-    })
-    .catch((err) => {
-      console.log(err);
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).render("auth/signup", {
+      pageTitle: "Signup",
+      errorMessage: errors.array(),
+      oldInput: {
+        username: username,
+        password: password,
+        confirmPassword: req.body.confirmPassword,
+      },
     });
+  }
+  return bcrypt.hash(password, 12).then((hashedPassword) => {
+    User.create({
+      username: username,
+      password: hashedPassword,
+    }).then(() => {
+      res.redirect("/login");
+    });
+  });
 };
 
 exports.postLogout = (req, res, next) => {
